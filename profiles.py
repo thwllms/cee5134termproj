@@ -3,6 +3,7 @@
 
 import os
 import matplotlib.pyplot as plt
+import traceback
 
 def load_data(textfile, station_field='STA', date_field='DATE2', sep='\t', nodata = 'NULL'):
     
@@ -102,30 +103,53 @@ def __reformat_date__(date):
     return reformatted
     
 
-def plot_data(data, depth_field, output_dir):
+def plot_data(data, depth_field, format_dict, output_dir):
     
-    for station in os.listdir(output_dir):
+    stations = os.listdir(output_dir)
+    for station in stations:
         print station
         
         for date in data[station].keys():
             date_reformatted = __reformat_date__(date)
             
-            for field in os.listdir(os.path.join(output_dir, station)):
+            fields = os.listdir(os.path.join(output_dir, station))
+            for field in fields:
                 
                 try:
+                    # Plot greyed-out profiles for other stations
+                    for station2 in stations:
+                        if station2 != station:
+                            x_data = data[station2][date][field]
+                            y_data = data[station2][date][depth_field]
+                            plt.plot(x_data, y_data, color='0.8')                    
+                    
+                    # Plot profile for this station
                     x_data = data[station][date][field]
                     y_data = data[station][date][depth_field]
-                    plt.plot(x_data, y_data)
+                    plt.plot(x_data, y_data, color='0.0')
+                    
+                    # Y-axis formatting
                     plt.gca().invert_yaxis()
-                    plt.ylabel(depth_field)
-                    plt.xlabel(field)
+                    plt.ylabel('Depth (ft)')
+                    plt.gca().set_ylim(60, 0)
+                    
+                    # X-axis formatting
+                    plt.xlabel(format_dict[field]['label'])                    
+                    x_min = format_dict[field]['min']
+                    x_max = format_dict[field]['max']
+                    plt.gca().set_xlim(x_min, x_max)
+                    
                     plt.title(station + ' ' + field + ' ' + date)
+                    
+                    # Save; clear figure
                     filename = station + "_" + field + "_" + date_reformatted + '.png'
                     plt.savefig(os.path.join(output_dir, station, field, filename))
                     plt.clf()
                 
                 except:
                     print 'error: ', station, date, field
+                    traceback.print_exc()
+                    print '\n'
                 
                 
 if __name__ == '__main__':
@@ -134,6 +158,13 @@ if __name__ == '__main__':
     data, header = load_data(textfile)
     
     output_dir = r'C:\temp\cee5134\profile_plots'
-    output_fields = ['DO', 'ORP', 'FIELDPH', 'TEMP', 'COND25', 'FIELDNO3']
+    output_fields = ['DO', 'ORP', 'FIELDPH', 'TEMP', 'COND25', 'FIELDNO3', 'DOSAT']
+    formatting = {'DO':{'min':0, 'max':25, 'label':'Dissolved Oxygen (mg/L)'},
+                  'ORP':{'min':0, 'max':750, 'label':'Oxidation-Reduction Potential (mV)'},
+                  'FIELDPH':{'min':6, 'max':10, 'label':'pH'},
+                  'TEMP':{'min':0, 'max':35, 'label':'Temperature (deg. C)'},
+                  'COND25':{'min':100, 'max':900, 'label':'Conductivity (units?)'},
+                  'FIELDNO3':{'min':0, 'max':12, 'label':'Nitrate Concentration (mg/l)'},
+                  'DOSAT':{'min':0, 'max':200, 'label':'Dissolved Oxygen Saturation (%)'}}
     create_output_dir(data, output_fields, output_dir)
-    plot_data(data, 'DEPTH', output_dir)
+    plot_data(data, 'DEPTH', formatting, output_dir)
