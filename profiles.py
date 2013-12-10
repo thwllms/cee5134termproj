@@ -150,7 +150,51 @@ def plot_data(data, depth_field, format_dict, output_dir):
                     print 'error: ', station, date, field
                     traceback.print_exc()
                     print '\n'
+
+                    
+def plot_data_allstations(data, depth_field, format_dict, output_dir):
+    
+    stations = data.keys()
+    stations.sort()
+
+    dates = data[stations[0]].keys()
+    
+    fields = format_dict.keys()
+    for field in fields:
+        print field
+        os.mkdir(os.path.join(output_dir, field))
+        
+        for date in dates:
+            date_reformatted = __reformat_date__(date)
+            
+            for station in stations:
                 
+                # Plot profile for each station
+                x_data = data[station][date][field]
+                y_data = data[station][date][depth_field]
+                plt.plot(x_data, y_data)
+                
+            # Y-axis formatting
+            plt.gca().invert_yaxis()
+            plt.ylabel('Depth (ft)')
+            plt.gca().set_ylim(60, 0)
+            
+            # X-axis formatting
+            plt.xlabel(format_dict[field]['label'])                    
+            x_min = format_dict[field]['min']
+            x_max = format_dict[field]['max']
+            plt.gca().set_xlim(x_min, x_max)
+            
+            # Legend
+            plt.legend(stations, loc=4)
+            
+            plt.title(field + ' ' + date)
+            
+            # Save; clear figure
+            filename = field + "_" + date_reformatted + '.png'
+            plt.savefig(os.path.join(output_dir, field, filename))
+            plt.clf()
+        
                 
 if __name__ == '__main__':
 
@@ -160,11 +204,12 @@ if __name__ == '__main__':
     output_dir = r'C:\temp\cee5134\profile_plots'
     output_fields = ['DO', 'ORP', 'FIELDPH', 'TEMP', 'COND25', 'FIELDNO3', 'DOSAT']
     formatting = {'DO':{'min':0, 'max':25, 'label':'Dissolved Oxygen (mg/L)'},
-                  'ORP':{'min':0, 'max':750, 'label':'Oxidation-Reduction Potential (mV)'},
+                  'ORP':{'min':0, 'max':1000, 'label':'Oxidation-Reduction Potential (mV)'},
                   'FIELDPH':{'min':6, 'max':10, 'label':'pH'},
                   'TEMP':{'min':0, 'max':35, 'label':'Temperature (deg. C)'},
-                  'COND25':{'min':100, 'max':900, 'label':'Conductivity (units?)'},
+                  'COND25':{'min':100, 'max':900, 'label':r'Conductivity ($\mu$S/cm)'},
                   'FIELDNO3':{'min':0, 'max':12, 'label':'Nitrate Concentration (mg/l)'},
                   'DOSAT':{'min':0, 'max':200, 'label':'Dissolved Oxygen Saturation (%)'}}
-    create_output_dir(data, output_fields, output_dir)
-    plot_data(data, 'DEPTH', formatting, output_dir)
+    # create_output_dir(data, output_fields, output_dir)
+    # plot_data(data, 'DEPTH', formatting, output_dir)
+    plot_data_allstations(data, 'DEPTH', formatting, output_dir)
